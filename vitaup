@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
+
+export PS1="(.\[\e[7m\]   \[\e[0m\].) "
+export VITASDK=${VITASDK:-"$__dir/sdk"}
+VITASDKBIN="$VITASDK/bin"
+(IFS=: ; for path in $PATH; do echo $path; done) | grep -q $VITASDKBIN || export PATH="$VITASDKBIN:$PATH"
+
+vita-serve() {
+  local ip=$(ip -o addr show up primary scope global | head -1 | cut -d' ' -f 7-7 | grep -oP '\d+\.\d+\.\d+\.\d+')
+  local url="http://$ip:8000${1:+/$1}"
+  echo $url
+  python3 -m http.server &>/dev/null &
+	httppid=$!
+  qrterminal $url | less -R
+	kill $httppid
+	wait
+}
+
+declare -x -f vita-serve
+
+EXECUTED=$(($(return 2>/dev/null)$?))
+
+if ((EXECUTED)); then
+  exec bash --rcfile "$__file" -i
+fi
